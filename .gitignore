@@ -1,0 +1,104 @@
+# ---------------------------------------------------------------------------
+# Virtual environments
+# Virtual environments are rebuilt from a Python install, never committed.
+# This module needs no external packages at all.
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+env/
+ENV/
+.virtualenv/
+
+# ---------------------------------------------------------------------------
+# Python bytecode and caches
+# Generated automatically whenever a module is imported (for example when
+# 21_combined_final_project/exercise_12 imports its operations module).
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ---------------------------------------------------------------------------
+# Packaging / build output
+# ---------------------------------------------------------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# ---------------------------------------------------------------------------
+# Testing and coverage
+# ---------------------------------------------------------------------------
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---------------------------------------------------------------------------
+# Jupyter
+# ---------------------------------------------------------------------------
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ---------------------------------------------------------------------------
+# Secrets and local configuration
+# Never commit real credentials. Commit a .env.example instead if one is needed.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# ---------------------------------------------------------------------------
+# Editors and IDEs
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+
+# ---------------------------------------------------------------------------
+# Operating system clutter
+# ---------------------------------------------------------------------------
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# Scratch files
+# ---------------------------------------------------------------------------
+*.log
+*.tmp
+*.bak
+scratch/
+temp/
+
+# ---------------------------------------------------------------------------
+# Deliberately NOT ignored
+#
+#   sample_output.txt  - captured program output, part of the deliverable
+#   requirements.txt   - dependency list, must be committed
+#   logs/*.log         - exercises 22-25 are ASSESSED on their log
+#                        files, so the `*.log` rule above must not eat them.
+#                        Only logs/ is exempted; a stray *.log anywhere else
+#                        is still scratch.
+#   demo_files/        - the input exercise 25 organizes, including the
+#                        dotfile that proves the "no extension" branch
+# ---------------------------------------------------------------------------
+!**/sample_output.txt
+!**/requirements.txt
+!**/logs/
+!**/logs/*.log
+!25_file_organizer/demo_files/
+!25_file_organizer/demo_files/**
+
