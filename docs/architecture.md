@@ -43,6 +43,11 @@ flowchart TD
 
 **1. Only `app/ui` imports Streamlit.**
 
+The proof is `app/cli/`: a whole second front end, added after everything else
+was written, needing **zero** changes to any service, repository or domain
+module. If a business rule had leaked into a Streamlit page, the CLI would have
+had to reimplement it.
+
 Verify it:
 
 ```bash
@@ -210,6 +215,7 @@ baffling bug report.
 
 | Want to add | Do this |
 |---|---|
+| Another front end | What `app/cli/` did: call `build_container()`, use the services |
 | A REST API | Call `build_container()`; the services are already framework-free |
 | PostgreSQL | Change `HABIT_DATABASE_URL`; the schema is portable, migrations run as-is |
 | Reminders | Implement `NotificationService`, pass it to `build_container()` |

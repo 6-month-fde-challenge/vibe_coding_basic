@@ -8,7 +8,7 @@ pytest tests/unit -q            # the domain layer, no database
 pytest --cov=app --cov-report=term-missing
 ```
 
-451 tests, ~91% statement coverage of `app` (the UI layer and `main.py` are
+507 tests, 90% statement coverage of `app` (the UI layer and `main.py` are
 excluded from the coverage figure and covered by a smoke suite instead).
 
 ## The layers of the suite
@@ -17,6 +17,7 @@ excluded from the coverage figure and covered by a smoke suite instead).
 |---|---|---|
 | `tests/unit` | Every business rule, including its edge cases | milliseconds — no database at all |
 | `tests/integration` | Services against a real schema, a temporary file and a frozen clock | seconds |
+| `tests/integration/test_cli.py` | Every command, its output, and the exit codes | seconds |
 | `tests/integration/test_ui_smoke.py` | Every page renders and produces widgets | seconds |
 | `tests/integration/test_performance.py` | Query counts and wall-clock budgets at 100k rows | a minute or two, marked `slow` |
 
@@ -128,6 +129,20 @@ rows on an SSD still finishes in well under a second. The query count does.
 These caught two real defects during development: `get_or_create` per day when
 scoring a range (1,110 queries for a year of heatmap), and a per-habit query
 inside the dashboard's habit loop.
+
+## The CLI
+
+`test_cli.py` drives `dispatch` against a real temporary database and captures
+stdout, so it asserts what a user actually sees: the exit code, the message, and
+the state left behind. Covered: every verb; prefix matching and the ambiguous
+case; each habit type's own input; backdating and the `--since` guard; the date
+words; the ASCII fallback being pure ASCII; and a global flag working on either
+side of the subcommand.
+
+`main()` is tested separately for the two things only it owns — the exception
+funnel (`CommandError` → 1, a crash → 70 *without* the message leaking, Ctrl-C →
+130) and the `finally`, with one test per path asserting the connection pool was
+disposed.
 
 ## UI smoke tests
 

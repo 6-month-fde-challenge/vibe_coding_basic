@@ -283,6 +283,34 @@ class TestMigrations:
         expected = set(Base.metadata.tables) | {"alembic_version"}
         assert expected == tables
 
+    def test_running_migrations_does_not_disable_the_application_loggers(self, tmp_path: Path):
+        """Alembic's ``fileConfig`` switches off every logger it does not name.
+
+        Startup runs migrations, so with the default
+        ``disable_existing_loggers=True`` every application log line after
+        startup disappeared silently - the log file held the first
+        migration message and nothing else.
+        """
+        import logging
+
+        from app.core.logging_config import setup_logging
+
+        settings = Settings(
+            database_url=f"sqlite:///{(tmp_path / 'logging.db').as_posix()}",
+            log_dir=tmp_path / "logs",
+        )
+        setup_logging(settings, force=True)
+        instance = Database(settings)
+        run_migrations(instance)
+        instance.dispose()
+
+        for name in (
+            "habit_tracker",
+            "habit_tracker.services.habit_service",
+            "habit_tracker.cli.commands",
+        ):
+            assert not logging.getLogger(name).disabled, f"{name} was disabled"
+
     def test_migrating_twice_is_a_no_op(self, tmp_path: Path):
         settings = Settings(
             database_url=f"sqlite:///{(tmp_path / 'twice.db').as_posix()}",

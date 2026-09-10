@@ -43,6 +43,9 @@ dev = [
 ]
 
 [project.scripts]
+# The command-line tracker. `habits --help` after `pip install -e .`;
+# `python main.py --help` works straight from a clone with no install.
+habits = "app.cli.__main__:main"
 habit-tracker-seed = "scripts.seed_data:main"
 habit-tracker-backup = "scripts.backup:main"
 

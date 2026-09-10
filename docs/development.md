@@ -10,8 +10,10 @@ source .venv/bin/activate       # macOS / Linux
 pip install -e ".[dev]"
 pre-commit install
 cp .env.example .env            # optional; the defaults work
+
+python main.py --help           # the CLI
 python scripts/seed_data.py --days 90 --yes
-streamlit run app/main.py
+streamlit run app/main.py       # the optional web UI
 ```
 
 ## The loop
@@ -32,8 +34,11 @@ Work down the stack, not across it. Each step is testable before the next
 exists.
 
 ```
-domain rule  →  schema  →  model  →  repository  →  service  →  component  →  page  →  tests
+domain rule  →  schema  →  model  →  repository  →  service  →  CLI command / page  →  tests
 ```
+
+Both front ends stop at the service layer. A feature that needs a new business
+rule does not touch either of them until the last step.
 
 Worked example — adding a "mood streak":
 
@@ -78,6 +83,21 @@ for the rare diagnostic case and is bounded.
 defers formatting until the record is actually emitted.
 
 ## Things that will trip you up
+
+**Alembic disables your loggers.** `logging.config.fileConfig()` defaults to
+`disable_existing_loggers=True`, and startup runs migrations. `env.py` passes
+`False` explicitly; if you ever see the log file stop after one line, that is
+where to look.
+
+**Global CLI flags need a parent parser.** `--plain` and `--quiet` are declared
+on the main parser *and* on every subcommand via `_global_flags()`, with
+`SUPPRESS` so the subparser default cannot overwrite a value given before the
+subcommand. Without both, only one of `habits --plain list` and
+`habits list --plain` works.
+
+**Argparse type converters run before your try block.** A converter that raises
+anything but `ValueError` or `ArgumentTypeError` prints a traceback. `parse_day`
+raises `CommandError`; `day_argument` translates it.
 
 **Streamlit reruns the whole script on every interaction.** So:
 
@@ -125,8 +145,14 @@ surfaces so the two cannot drift.
 ## Project layout
 
 ```
+main.py              CLI shim, so `python main.py` works from a clone
 app/
-  main.py            navigation only
+  cli/               the command-line interface
+    parser.py          the grammar (argparse)
+    commands.py        one handler per verb
+    formatters.py      terminal rendering, ASCII fallback
+    __main__.py        try/except/finally and the exit code
+  main.py            Streamlit navigation only
   bootstrap.py       the object graph, in one place
   config/            settings
   core/              errors, logging, time

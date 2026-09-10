@@ -143,8 +143,33 @@ class DataExportError(AppError):
     default_user_message = "That export could not be produced."
 
 
+class CommandError(AppError):
+    """A command-line invocation was wrong in a way argparse cannot catch.
+
+    A malformed ``--date``, a habit name that matches nothing, an amount
+    the command needs but was not given. Argparse handles *shape*; this
+    handles meaning.
+
+    Attributes:
+        hint: An optional second line suggesting what to type instead.
+    """
+
+    default_user_message = "That command could not be run."
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        hint: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message, details=details, user_hint=message)
+        self.hint = hint
+
+
 __all__ = [
     "AppError",
+    "CommandError",
     "ConfigurationError",
     "ConflictError",
     "DataExportError",

@@ -332,6 +332,30 @@ class HabitService(BaseService):
             )
         return views
 
+    def find_by_name(self, name: str, *, active_only: bool = False) -> list[HabitRead]:
+        """Return habits matching a name, exactly or by prefix.
+
+        Typing a full habit name at a prompt is friction, so the CLI
+        accepts a prefix. An exact match always wins outright: a habit
+        called "Read" must not become ambiguous the day "Read papers" is
+        added.
+
+        Args:
+            name: The full name or a prefix, matched case-insensitively.
+            active_only: Ignore archived habits.
+
+        Returns:
+            The matches. Empty for none, one entry for a resolved name,
+            several when a prefix is ambiguous.
+        """
+        needle = name.strip().casefold()
+        habits = self.list_habits(active_only=active_only)
+
+        exact = [habit for habit in habits if habit.name.casefold() == needle]
+        if exact:
+            return exact
+        return [habit for habit in habits if habit.name.casefold().startswith(needle)]
+
     def completion_dates(self, habit_id: int, *, since: date | None = None) -> list[date]:
         """Return the dates one habit was completed on, oldest first.
 
