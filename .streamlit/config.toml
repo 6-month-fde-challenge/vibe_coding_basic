@@ -1,0 +1,30 @@
+# Streamlit chrome, kept in step with app/ui/theme.py.
+#
+# The chart palette lives in theme.py; these values are the page surfaces
+# it is validated against, so the two cannot drift apart silently.
+
+[theme]
+base = "light"
+primaryColor = "#2a78d6"
+backgroundColor = "#f9f9f7"
+secondaryBackgroundColor = "#fcfcfb"
+textColor = "#0b0b0b"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#fcfcfb"
+
+[server]
+headless = true
+# Personal data: never leave the loopback interface by default.
+address = "localhost"
+fileWatcherType = "auto"
+maxUploadSize = 10
+
+[browser]
+# No usage statistics. Section 42 of the brief: nothing leaves the machine.
+gatherUsageStats = false
+
+[client]
+showErrorDetails = "none"
+toolbarMode = "minimal"

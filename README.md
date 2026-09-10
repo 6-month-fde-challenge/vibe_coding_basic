@@ -1,254 +1,246 @@
-# Daily Habit Tracker (Vibe Coding Challenge)
+# Personal Habit & Daily Life Tracker
 
-A command-line habit tracker — add habits, tick them off each day, and see your current
-and longest streaks — built with an AI coding assistant **one prompt at a time**.
+A local-first personal operating system: tasks, habits, sleep, activity, time,
+goals, journal, health metrics and the analytics that connect them — built as a
+modular Python application with Streamlit as a *replaceable* presentation layer.
 
-> **Status: brief and prompt script.** The code in this folder is written during the
-> recorded session, step by step. This README is the plan it is built against, and the
-> sections marked **[fill after building]** are completed from the real run rather than
-> written in advance.
+Everything stays on your machine. Nothing is sent anywhere.
 
 ---
 
-## Project objective
+## What it answers
 
-The assignment is not "get a working habit tracker". Copying one prompt into an AI gets
-that in thirty seconds. The assignment is:
+The product exists to answer three questions every day.
 
-> Do not ask AI to generate the entire project in one prompt. Use vibe coding
-> step-by-step.
+| Question | Where |
+|---|---|
+| **What did I do?** | Dashboard, Tasks, Habits, Activities |
+| **How did I spend my time?** | Timeline, Time tracking, allocation charts |
+| **Am I improving?** | Analytics, streaks, weekly review, calendar heatmap |
 
-So the deliverable is a project that was **argued into existence** — structure agreed
-first, one module at a time, run after each one, errors found by running rather than by
-reading, and exception handling and logging added deliberately instead of appearing
-fully formed.
-
-The measure of success is the video: being able to open any file and say why it is
-shaped the way it is.
+The design constraint behind all of it: **tracking must take less time than the
+activity being tracked**. Hence Quick Add on the dashboard, one-tap habit ticks,
+duration presets, and a morning check-in that fits in under a minute.
 
 ---
 
-## Why a habit tracker
+## Architecture
 
-Of the ten options offered, this one has the most interesting logic that is not
-arithmetic. Adding a contact is a dictionary write. Working out that somebody's streak
-is 6 days — and that it ended yesterday, not today — needs real date handling:
+```mermaid
+flowchart TD
+    UI["app/ui — Streamlit pages & components<br/>the only package that imports streamlit"]
+    SVC["app/services — business rules, one unit of work per operation"]
+    DOM["app/domain — pure functions<br/>streaks, BMR, sleep, scoring, insights"]
+    REPO["app/repositories — the only place SQL is written"]
+    MOD["app/models — SQLAlchemy ORM"]
+    DB[("SQLite · Alembic<br/>swappable for Postgres")]
 
+    UI --> SVC
+    SVC --> DOM
+    SVC --> REPO
+    REPO --> MOD
+    MOD --> DB
 ```
-2026-09-03  done      \
-2026-09-04  done       |  current streak = 4
-2026-09-05  done       |  (today counts, so the run is unbroken)
-2026-09-06  done      /
-2026-09-07  missed        <- breaks the run
-2026-09-08  done      \
-2026-09-09  done      /   longest streak = 4, current = 2
-```
 
-That is a genuinely explainable ten minutes of video, and it produces natural failure
-cases — a date in the future, a habit ticked twice in one day, a corrupt save file —
-which is where the exception handling and the custom exception come from.
+Two rules hold everywhere, and the test suite and linter both enforce parts of
+them:
+
+* **Nothing below `app/ui` imports Streamlit.** The services and the domain do
+  not know a browser exists, which is what would let a FastAPI process reuse
+  them unchanged.
+* **Nothing in `app/domain` imports SQLAlchemy.** The streak engine, the BMR
+  formulas, the sleep arithmetic and the productivity score are plain functions
+  over plain values, so they are fast, reusable, and testable without a
+  database.
+
+### The layers
+
+| Package | Responsibility |
+|---|---|
+| `app/config` | Environment-driven settings, validated by pydantic |
+| `app/core` | Errors, logging, timezone-aware date handling |
+| `app/database` | Engine, session, declarative base, custom column types, migrations |
+| `app/models` | ORM tables, enums, constraints, indexes |
+| `app/schemas` | Pydantic DTOs — the contract between the UI and the services |
+| `app/domain` | Pure business logic, organised by subject area |
+| `app/repositories` | Persistence: bounded, indexed, aggregated queries |
+| `app/services` | Business rules, transactions, orchestration |
+| `app/notifications` | Reminder delivery behind an interface (no implementation wired yet) |
+| `app/export` | CSV / JSON / Excel serialisers |
+| `app/ui` | Streamlit pages and reusable components |
+
+> On the brief's suggested tree: it lists `domain/`, `calculations/` *and*
+> `analytics/`, which would put the same pure functions in three places. They
+> live in `app/domain/<subject>/` instead — one home per subject area, with the
+> separation of concerns intact. `docs/architecture.md` maps the brief's names
+> onto the modules that implement them.
 
 ---
 
-## Requirements checklist
+## Features
 
-The assignment names seven things the final project must contain:
+**Daily** — dashboard with an explainable score, Quick Add, chronological
+timeline, morning check-in, evening review.
 
-| # | Requirement | Where it lands |
-|---|---|---|
-| 1 | at least 4 Python files / modules | `main.py` + 4 modules inside the package |
-| 2 | one package | `habits/` with `__init__.py` |
-| 3 | `try` / `except` / `finally` | `storage.py` — the save must not corrupt the file |
-| 4 | at least one custom exception | `HabitNotFoundError`, `DuplicateHabitError`, `InvalidDateError` |
-| 5 | logging to a file | `logs/habits.log` |
-| 6 | imports between modules | `tracker.py` imports `storage`, `streaks`, `errors` |
-| 7 | a README with 5+ AI prompts | this file — ten of them, below |
+**Tracking** — tasks (priorities, recurrence, estimates vs actuals), habits
+(five types, four comparison directions, rest days, flexible weekly quotas),
+sleep (correct across midnight), activities, time tracking.
+
+**Analysis** — streaks, GitHub-style calendar heatmap, weekly review with
+period-on-period comparison, monthly trends, rule-based insights and
+recommendations, weekly numeric goals fed by the daily records.
+
+**Health** — BMR by three configurable formulas, TDEE, BMI, weight trend. Every
+figure is labelled an estimate, because that is what it is.
+
+**Data** — CSV, JSON and Excel export; CSV/JSON import; full JSON backup and
+restore; a SQLite file copy taken through SQLite's own backup API.
 
 ---
 
-## Planned structure
+## Installation
 
-Agreed with the assistant in **step 2**, before any code was written:
-
-```
-daily_habit_tracker/
-├── README.md
-├── main.py                 the CLI - menu, argv, printing. NOT part of the package.
-├── habits/                 <- the package
-│   ├── __init__.py             the public surface
-│   ├── errors.py               HabitError and its subclasses
-│   ├── models.py               a Habit, and what one looks like on disk
-│   ├── storage.py              load and save habits.json, atomically
-│   ├── streaks.py              current streak, longest streak, completion rate
-│   └── logger_config.py        where log records go
-├── data/
-│   └── habits.json         the save file
-└── logs/
-    └── habits.log          every add, tick and failure
-```
-
-Same shape as [exercise 25](../../01_python_basics/25_file_organizer/): the package is
-the reusable part, `main.py` is the throwaway part that knows about a terminal.
-
-### Planned commands
+Requires **Python 3.12+**.
 
 ```bash
-python main.py add "Read 20 pages"      # create a habit
-python main.py list                     # all habits with their streaks
-python main.py done "Read 20 pages"     # tick today off
-python main.py done "Read 20 pages" --date 2026-09-07
-python main.py stats "Read 20 pages"    # current streak, longest, completion rate
-python main.py remove "Read 20 pages"
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+source .venv/bin/activate     # macOS / Linux
+
+pip install -e ".[dev]"
 ```
 
-### Planned exceptions
+### Environment configuration
 
-```
-Exception
- └── HabitError                  base - one except clause catches all of them
-      ├── HabitNotFoundError         "done" on a habit that was never added
-      ├── DuplicateHabitError        "add" on a name already taken
-      ├── InvalidDateError           a date that is malformed, or in the future
-      └── StorageError               habits.json is missing, locked, or corrupt
+Every setting is optional; the defaults work out of the box.
+
+```bash
+cp .env.example .env
 ```
 
----
+| Variable | Default | Meaning |
+|---|---|---|
+| `HABIT_APP_ENV` | `development` | `development` / `testing` / `production` |
+| `HABIT_DATABASE_URL` | `sqlite:///data/habit_tracker.db` | Any SQLAlchemy URL |
+| `HABIT_LOG_LEVEL` | `INFO` | Root level for the application logger |
+| `HABIT_LOG_DIR` | `logs` | Where `habit_tracker.log` is written |
+| `HABIT_TIMEZONE` | `Asia/Kolkata` | Fallback day boundary before a profile exists |
+| `HABIT_DB_ECHO` | `false` | Echo SQL into the log |
+| `HABIT_MAX_UPLOAD_MB` | `10` | Cap on imported files |
 
-## The ten prompts
+`.env` is git-ignored. No secret is ever read from source.
 
-The assignment asks for at least five. These are the ten, in the order they are used —
-one per step of the vibe-coding loop. They are written to be pasted verbatim, so the
-recording shows the real conversation.
+### Database setup
 
-### Step 1 — Understand the requirement
+Nothing to do — the app runs `alembic upgrade head` on start. To do it by hand:
 
-> **Prompt 1.** I have to build a command-line Daily Habit Tracker in Python as a
-> college assignment. The requirements are: at least 4 Python files, one package,
-> try/except/finally, at least one custom exception, logging to a file, and imports
-> between modules. Before writing any code, ask me the questions you need answered to
-> get the design right — especially about how streaks should be counted and where the
-> data is stored. Do not write code yet.
+```bash
+alembic upgrade head                              # apply migrations
+alembic revision --autogenerate -m "add a thing"  # after changing a model
+ruff format app/database/migrations/versions      # tidy the generated file
+alembic downgrade -1                              # step back
+```
 
-*Why this prompt first:* it forces the ambiguity out into the open. "Streak" has at
-least three reasonable definitions and picking one is my decision, not the assistant's.
+### Running locally
 
-### Step 2 — Suggest the structure
+```bash
+streamlit run app/main.py
+```
 
-> **Prompt 2.** Based on those answers, propose a package/module structure. I want the
-> package to contain only reusable logic and `main.py` to be the CLI outside it. For
-> each module give me one sentence on what it is responsible for, and tell me the
-> import direction between them so we do not end up with a circular import. Structure
-> only — still no code.
+Then open <http://localhost:8501>.
 
-### Step 3 — Generate one module
+### Seeding demo data
 
-> **Prompt 3.** Write only `habits/streaks.py`. It takes a list of ISO date strings
-> (`"2026-09-09"`) that a habit was completed on, and returns current streak, longest
-> streak, and completion rate since the first entry. No file I/O, no printing, no
-> logging — pure functions, so I can test it on its own. Add an
-> `if __name__ == "__main__"` block with three or four cases including an empty list.
+The dashboard is far more useful with history behind it:
 
-*Why streaks first:* it is the only module with logic worth getting wrong, and it has
-no dependencies, so it can be run immediately.
+```bash
+python scripts/seed_data.py --days 90 --yes
+```
 
-### Step 4 — Run it
-
-*(No prompt. `python habits/streaks.py` and read the output.)*
-
-### Step 5 → 6 — Find an error, and get it fixed
-
-> **Prompt 4.** `python habits/streaks.py` gives me this: **[paste the real traceback
-> or the wrong number]**. Here is the input that produced it: **[paste it]**. Explain
-> what is actually happening before you change anything, then give me the smallest fix
-> — not a rewrite of the module.
-
-*Why "explain before you change":* a fix I cannot explain is a fix I cannot defend on
-camera, and this is the step the marking scheme is really looking at.
-
-### Step 7 — Exception handling
-
-> **Prompt 5.** Now write `habits/errors.py`: a `HabitError` base class and the
-> subclasses `HabitNotFoundError`, `DuplicateHabitError`, `InvalidDateError` and
-> `StorageError`. Each one should carry the relevant data as attributes (habit name,
-> the bad date) rather than only a message string, so callers can branch on the type
-> and still get at the detail. Then update `habits/storage.py` to raise `StorageError`
-> when `habits.json` is missing, unreadable, or not valid JSON — and use
-> `try/except/finally` so a save that fails part-way cannot leave the file truncated.
-
-### Step 8 — Logging
-
-> **Prompt 6.** Add `habits/logger_config.py` with a `setup_logging()` and a
-> `get_logger(name)`, writing to `logs/habits.log`. Use a named logger with child
-> loggers per module, not `basicConfig`. Then add log calls to `tracker.py`: INFO for a
-> habit added or ticked, WARNING for a habit ticked twice on the same day, ERROR for a
-> save that failed. Do not log inside `streaks.py` — it stays pure.
-
-### Step 9 — Refactor
-
-> **Prompt 7.** Review `main.py` and tell me what is wrong with it before changing
-> anything. I think the command dispatch is a long if/elif chain and the argument
-> parsing is duplicated in three places. Propose the refactor, wait for me to agree,
-> then apply it.
-
-> **Prompt 8.** `habits/__init__.py` is empty. Make it the front door for the package:
-> re-export the names `main.py` actually needs, add `__all__` and `__version__`, and
-> explain in a comment what this file gives me that four loose modules would not.
-
-### Step 10 — Test
-
-> **Prompt 9.** Give me a list of the inputs that should break this program — bad
-> dates, duplicate names, a habit that does not exist, an empty `habits.json`, a
-> corrupt one, a date in the future, unicode in a habit name. For each one tell me what
-> the program *should* do. I will run them myself and tell you which ones are wrong.
-
-> **Prompt 10.** These three cases behaved wrongly: **[paste the real results]**. Fix
-> them one at a time, smallest change first, and tell me which exception class each
-> case should raise.
+Ninety days of deliberately *imperfect* data — bad Wednesdays, a habit that
+slides, skipped days — because a demo dataset at 100% tells you nothing about
+whether the analytics work.
 
 ---
 
-## What the AI got wrong
+## Development
 
-**[fill after building]** — the honest list. Every place the assistant produced
-something that did not run, or ran and was wrong, and what the actual fix was. This
-section is worth more in the video than the code is, because it is the part that proves
-the project was driven rather than pasted.
+```bash
+ruff check .            # lint
+ruff format .           # format
+mypy                    # type-check app, scripts and tests
+pytest                  # the whole suite
+pytest -m "not slow"    # skip the 100k-row performance tests
+pytest --cov=app        # with coverage
+pre-commit install      # run all of the above on every commit
+```
 
-Candidates to watch for, based on exercises 22–24:
+The suite is 451 tests at ~91% statement coverage of `app`, split into:
 
-- a module named `logging.py`, shadowing the standard library
-- `logging.basicConfig()` instead of a configured named logger
-- streaks counted from the wrong end of the list, or off by one when today is included
-- `except Exception` everywhere, hiding the custom exceptions that were just written
-- a save that opens the file for writing before it has something valid to write, so a
-  crash mid-save truncates it
+* **unit** — the domain layer, with no database at all
+* **integration** — services against a temporary SQLite file and a frozen clock
+* **UI smoke** — every page rendered headlessly through Streamlit's `AppTest`
+* **performance** (`-m slow`) — 100,000 tasks and 100,000 habit logs, asserting
+  both wall-clock budgets and the *number of queries issued*
+
+### Backup
+
+```bash
+python scripts/backup.py                 # SQLite copy + JSON export
+python scripts/backup.py --json-only
+python scripts/backup.py --keep 5
+```
+
+Two artefacts because they fail differently: the file copy restores exactly but
+only this app can read it; the JSON is portable and diffable but comes back as a
+re-import.
+
+### Export / import
+
+From **Settings → Data**, or programmatically:
+
+```python
+from app.bootstrap import build_container
+
+container = build_container()
+container.exports.export_csv("habit_logs")
+container.exports.full_backup()
+container.imports.import_csv("sleep_records", uploaded_bytes)
+```
+
+Imports go through the same validated schemas the forms use, so an import
+cannot create a record you could not have typed by hand.
 
 ---
 
-## Verified run
+## Deployment
 
-**[fill after building]** — the real terminal output of `add`, `list`, `done`, `stats`
-and at least two failure cases, captured rather than retyped, plus the resulting
-`logs/habits.log`.
+The app is designed to run locally, and `.streamlit/config.toml` binds it to
+`localhost` with usage statistics off. To run it elsewhere:
 
----
+```bash
+HABIT_APP_ENV=production HABIT_DATABASE_URL=postgresql+psycopg://... \
+  streamlit run app/main.py --server.port 8501
+```
 
-## Learning / outcomes
-
-**[fill after building]** — but the question the video has to answer is this one:
-
-*Which parts of this project could I have written without the assistant, and which
-parts did I only understand after arguing with it?*
+The data is personal. If it leaves your machine, put authentication in front of
+it first — see the roadmap.
 
 ---
 
-## YouTube demonstration link
+## Documentation
 
-<your-youtube-video-link>
+| Document | Contents |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Layers, dependency rules, key decisions and their trade-offs |
+| [docs/database.md](docs/database.md) | Schema, constraints, indexes, migrations |
+| [docs/development.md](docs/development.md) | Conventions, adding a feature end to end, tooling |
+| [docs/testing.md](docs/testing.md) | Strategy, fixtures, what is covered and what is not |
+| [docs/roadmap.md](docs/roadmap.md) | Extension points and what would come next |
+| [docs/vibe_coding_brief.md](docs/vibe_coding_brief.md) | The original CLI exercise this folder started as |
 
 ---
 
-## Submission links
+## Licence
 
-- **GitHub Repository:** `<your-public-github-repository-link>`
-- **YouTube Explanation:** `<your-youtube-video-link>`
+MIT — see [LICENSE](LICENSE).

@@ -102,3 +102,30 @@ temp/
 !25_file_organizer/demo_files/
 !25_file_organizer/demo_files/**
 
+
+# ---------------------------------------------------------------------------
+# Personal Habit & Daily Life Tracker (Streamlit app in this folder)
+#
+# The SQLite database is personal data - it is never committed. The `data/`
+# folder itself is kept via `data/.gitkeep` so a fresh clone has somewhere to
+# put the database on first run.
+# ---------------------------------------------------------------------------
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite3
+!data/.gitkeep
+
+# Generated exports and backups - regenerate them, do not commit them.
+exports/
+backups/
+
+# Streamlit local state
+.streamlit/secrets.toml
+
+# The tracker's own runtime log. The rule above un-ignores logs/*.log for
+# exercises 22-25, which are assessed on their log files; this application
+# is not, and its log is personal.
+logs/habit_tracker.log
+logs/habit_tracker.log.*

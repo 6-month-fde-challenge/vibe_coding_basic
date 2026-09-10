@@ -1,0 +1,73 @@
+"""Analytics: aggregation shapes, trend detection and the insights engine."""
+
+from app.domain.analytics.aggregations import (
+    Bucket,
+    HeatmapCell,
+    build_heatmap,
+    distribution,
+    fill_missing_days,
+    group_by_month,
+    group_by_week,
+    rolling_totals,
+)
+from app.domain.analytics.insights import (
+    HabitFacts,
+    Insight,
+    InsightContext,
+    Recommendation,
+    generate_insights,
+    generate_recommendations,
+)
+from app.domain.analytics.statistics import (
+    clamp,
+    linear_slope,
+    mean,
+    median,
+    moving_average,
+    percentage_change,
+    safe_divide,
+    stdev,
+)
+from app.domain.analytics.trends import (
+    Comparison,
+    DayExtreme,
+    SeriesTrend,
+    best_and_worst,
+    compare,
+    compare_periods,
+    detect_trend,
+    weekday_averages,
+)
+
+__all__ = [
+    "Bucket",
+    "Comparison",
+    "DayExtreme",
+    "HabitFacts",
+    "HeatmapCell",
+    "Insight",
+    "InsightContext",
+    "Recommendation",
+    "SeriesTrend",
+    "best_and_worst",
+    "build_heatmap",
+    "clamp",
+    "compare",
+    "compare_periods",
+    "detect_trend",
+    "distribution",
+    "fill_missing_days",
+    "generate_insights",
+    "generate_recommendations",
+    "group_by_month",
+    "group_by_week",
+    "linear_slope",
+    "mean",
+    "median",
+    "moving_average",
+    "percentage_change",
+    "rolling_totals",
+    "safe_divide",
+    "stdev",
+    "weekday_averages",
+]

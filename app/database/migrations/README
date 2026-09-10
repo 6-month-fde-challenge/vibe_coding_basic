@@ -1,0 +1,10 @@
+Alembic migration environment.
+
+The database URL is read from app.config.settings, not from alembic.ini, so
+`alembic upgrade head` and the running application can never disagree about
+which database they are pointed at.
+
+  alembic revision --autogenerate -m "describe the change"
+  alembic upgrade head
+  alembic downgrade -1
+  alembic history
